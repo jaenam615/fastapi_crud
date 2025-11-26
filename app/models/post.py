@@ -1,6 +1,9 @@
 from sqlalchemy import Column, BigInteger, String, ForeignKey, DateTime, Text, func
 from sqlalchemy.orm import relationship
 from app.core.db import Base
+from app.models.comment import Comment
+from app.models.user import User
+
 
 class Post(Base):
     __tablename__ = "posts"
@@ -12,5 +15,5 @@ class Post(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    author = relationship("User")
-    comments = relationship("Comment", back_populates="post", cascade="all, delete-orphan")
+    author = relationship(User)
+    comments = relationship(Comment, back_populates="post", cascade="all, delete-orphan")

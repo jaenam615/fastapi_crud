@@ -8,7 +8,11 @@ class PostOut(BaseModel):
     id: int
     title: str
     content: str
-    author_id: int
+    user_id: int
 
     class Config:
         orm_mode = True
+
+class PostDeleteOut(BaseModel):
+    success: bool
+    message: str | None = None
