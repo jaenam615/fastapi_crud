@@ -1,12 +1,9 @@
 from abc import ABC, abstractmethod
 
-from passlib.context import CryptContext
-
+from app.core.hash import hash_password, verify_password
 from app.models.user import User
 from app.repositories.user_repository import UserRepositoryInterface
 from app.schemas.user import UserCreate
-
-pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class UserServiceInterface(ABC):
@@ -24,7 +21,7 @@ class UserService(UserServiceInterface):
         self._repo = repo
 
     async def create_user(self, data: UserCreate) -> User:
-        hashed = pwd.hash(data.password)
+        hashed = await hash_password(data.password)
         user = User(username=data.username, password=hashed)
         return await self._repo.create(user=user)
 
@@ -32,6 +29,6 @@ class UserService(UserServiceInterface):
         user = await self._repo.get_by_username(username=username)
         if not user:
             return None
-        if not pwd.verify(password, user.password):
+        if not await verify_password(password, user.password):
             return None
         return user

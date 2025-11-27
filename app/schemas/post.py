@@ -1,8 +1,10 @@
 from pydantic import BaseModel
 
+
 class PostCreate(BaseModel):
     title: str
     content: str
+
 
 class PostOut(BaseModel):
     id: int
@@ -10,8 +12,8 @@ class PostOut(BaseModel):
     content: str
     user_id: int
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
+
 
 class PostDeleteOut(BaseModel):
     success: bool
