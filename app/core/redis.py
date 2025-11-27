@@ -3,6 +3,8 @@ import os
 from dotenv import load_dotenv
 from redis.asyncio import Redis
 
+from app.metrics.redis_metrics import redis_hits, redis_misses
+
 load_dotenv()
 
 
@@ -19,3 +21,16 @@ redis = Redis.from_url(
     encoding="utf-8",
     decode_responses=True,
 )
+
+
+async def cached_get(key: str):
+    value = await redis.get(key)
+    if value is None:
+        redis_misses.inc()
+    else:
+        redis_hits.inc()
+    return value
+
+
+async def cached_set(key: str, value: str, ttl: int):
+    await redis.set(key, value, ex=ttl)

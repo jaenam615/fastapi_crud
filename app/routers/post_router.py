@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from starlette.status import HTTP_201_CREATED
 
 from app.core.dependencies import get_current_user
-from app.core.redis import RedisConstants, redis
+from app.core.redis import RedisConstants, cached_get, cached_set, redis
 from app.dependencies import get_post_service
 from app.models.user import User
 from app.schemas.post import PostCreate, PostDeleteOut, PostOut
@@ -59,15 +59,15 @@ async def create_post(
 async def list_posts(
     post_service: PostService = Depends(get_post_service),
 ):
-    cached = await redis.get(RedisConstants.CACHE_KEY_POST_ALL)
+    cached = await cached_get(key=RedisConstants.CACHE_KEY_POST_ALL)
     if cached:
         return json.loads(cached)
     posts = await post_service.list_posts()
-    posts_out = [PostOut.from_orm(p) for p in posts]
+    posts_out = [PostOut.model_validate(p) for p in posts]
 
-    await redis.set(
-        RedisConstants.CACHE_KEY_POST_ALL,
-        json.dumps([p.model_dump() for p in posts_out]),
-        ex=RedisConstants.CACHE_TTL_POSTS,
+    await cached_set(
+        key=RedisConstants.CACHE_KEY_POST_ALL,
+        value=json.dumps([p.model_dump() for p in posts_out]),
+        ttl=RedisConstants.CACHE_TTL_POSTS,
     )
     return posts
