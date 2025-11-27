@@ -3,11 +3,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from passlib.context import CryptContext
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 from app.schemas.user import UserCreate
-from app.services.user_service import UserService, get_user_service
+from app.services.user_service import UserService
 
 # -----------------------------
 # Fixtures
@@ -23,13 +22,8 @@ def mock_repo():
 
 
 @pytest.fixture
-def fake_db():
-    return AsyncMock(spec=AsyncSession)
-
-
-@pytest.fixture
 def user_service(mock_repo) -> UserService:
-    return get_user_service(repo=mock_repo)
+    return UserService(repo=mock_repo)
 
 
 # -----------------------------
@@ -46,7 +40,7 @@ def user_service(mock_repo) -> UserService:
     ],
 )
 async def test_create_user_happypath(
-    user_service, mock_repo, fake_db, given_username, given_password, expected_username
+    user_service, mock_repo, given_username, given_password, expected_username
 ):
     given_user = UserCreate(username=given_username, password=given_password)
 
@@ -54,29 +48,27 @@ async def test_create_user_happypath(
         username=given_username, password="hashedpassword"
     )
 
-    user = await user_service.create_user(db=fake_db, data=given_user)
+    user = await user_service.create_user(data=given_user)
 
     assert user.username == expected_username
     assert user.password != given_password
+
     mock_repo.create.assert_awaited_once()
+    called_user = mock_repo.create.call_args.kwargs["user"]
+    assert called_user.username == given_username
+    assert called_user.password != given_password
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "given_username, given_password, expected_exception",
-    [
-        ("testuser", "securepassword", IntegrityError),
-    ],
-)
-async def test_create_user_unhappypath(
-    user_service, mock_repo, fake_db, given_username, given_password, expected_exception
-):
-    given_user = UserCreate(username=given_username, password=given_password)
+async def test_create_user_unhappypath(user_service, mock_repo):
+    given_user = UserCreate(username="testuser", password="securepassword")
 
     mock_repo.create.side_effect = IntegrityError("duplicate key", None, None)
 
-    with pytest.raises(expected_exception):
-        await user_service.create_user(db=fake_db, data=given_user)
+    import pytest
+
+    with pytest.raises(IntegrityError):
+        await user_service.create_user(data=given_user)
 
 
 @pytest.mark.asyncio
@@ -89,21 +81,19 @@ async def test_create_user_unhappypath(
     ],
 )
 async def test_authenticate(
-    user_service,
-    mock_repo,
-    fake_db,
-    given_username,
-    given_password,
-    expected_authenticated,
+    user_service, mock_repo, given_username, given_password, expected_authenticated
 ):
     pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-    mock_repo.get_by_username.return_value = User(
-        username="testuser", password=pwd.hash("securepassword")
-    )
+    async def get_by_username_side_effect(username):
+        if username == "testuser":
+            return User(username="testuser", password=pwd.hash("securepassword"))
+        return None
+
+    mock_repo.get_by_username.side_effect = get_by_username_side_effect
 
     user = await user_service.authenticate(
-        db=fake_db, username=given_username, password=given_password
+        username=given_username, password=given_password
     )
 
     if expected_authenticated:
