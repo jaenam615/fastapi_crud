@@ -48,4 +48,4 @@ class PostRepository(PostRepositoryInterface):
     async def delete(self, post_id: int) -> None:
         stmt = delete(Post).where(Post.id == post_id)
         await self._session.execute(stmt)
-        return
+        await self._session.commit()

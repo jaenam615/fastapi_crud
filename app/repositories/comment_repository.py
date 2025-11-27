@@ -31,6 +31,3 @@ class CommentRepository(CommentRepositoryInterface):
         stmt = Select(Comment).where(Comment.post_id == post_id)
         result = await self._session.execute(stmt)
         return result.scalars().all()
-
-
-comment_repo = CommentRepository()

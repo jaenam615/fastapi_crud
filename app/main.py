@@ -1,11 +1,20 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
-from app.core.db import Base, engine
-from app.routers import auth_router, post_router, comment_router
 from fastapi.middleware.cors import CORSMiddleware
 
-Base.metadata.create_all(bind=engine)
+from app.core.db import Base, engine
+from app.routers import auth_router, comment_router, post_router
 
-app = FastAPI(title="FastAPI CRUD")
+
+@asynccontextmanager
+async def lifespan(fastapi: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
+
+app = FastAPI(title="FastAPI CRUD", lifespan=lifespan)
 
 
 app.add_middleware(

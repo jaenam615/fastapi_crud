@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Sequence
 
-from repositories.post_repository import PostRepositoryInterface
-from sqlalchemy.orm import Session
-
 from app.models.post import Post
+from app.repositories.post_repository import PostRepositoryInterface
 from app.schemas.post import PostCreate
 
 
@@ -21,8 +19,12 @@ class PostServiceInterface(ABC):
     async def delete_post(self, user_id: int, post_id: int) -> bool:
         pass
 
+    @abstractmethod
+    async def get_post_by_id(self, post_id: int) -> Post:
+        pass
 
-class PostService:
+
+class PostService(PostServiceInterface):
     def __init__(self, repo: PostRepositoryInterface):
         self._repo = repo
 
@@ -36,6 +38,9 @@ class PostService:
 
     async def list_posts(self) -> Sequence[Post]:
         return await self._repo.list()
+
+    async def get_post_by_id(self, post_id: int) -> Post:
+        return await self._repo.get_by_id(post_id=post_id)
 
     async def delete_post(self, user_id: int, post_id: int) -> bool:
         post = await self._repo.get_by_id(post_id=post_id)

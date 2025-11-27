@@ -1,12 +1,9 @@
 from abc import ABC, abstractmethod
-from functools import lru_cache
 
 from passlib.context import CryptContext
-from repositories.user_repository import UserRepositoryInterface
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
-from app.repositories.user_repository import UserRepository
+from app.repositories.user_repository import UserRepositoryInterface
 from app.schemas.user import UserCreate
 
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
