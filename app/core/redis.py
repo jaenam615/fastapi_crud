@@ -1,4 +1,9 @@
+import os
+
+from dotenv import load_dotenv
 from redis.asyncio import Redis
+
+load_dotenv()
 
 
 class RedisConstants:
@@ -6,8 +11,11 @@ class RedisConstants:
     CACHE_TTL_POSTS = 60
 
 
+REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_PORT = os.getenv("REDIS_PORT")
+
 redis = Redis.from_url(
-    "redis://localhost:6379/0",
+    f"redis://{REDIS_HOST}:{REDIS_PORT}/0",
     encoding="utf-8",
     decode_responses=True,
 )
