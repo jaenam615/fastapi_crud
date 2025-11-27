@@ -3,6 +3,7 @@ from typing import Sequence
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.post import Post
 
@@ -36,7 +37,9 @@ class PostRepository(PostRepositoryInterface):
         return post
 
     async def list(self) -> Sequence[Post]:
-        stmt = select(Post)
+        stmt = select(Post).options(
+            selectinload(Post.author), selectinload(Post.comments)
+        )
         result = await self._session.execute(stmt)
         return result.scalars().all()
 

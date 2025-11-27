@@ -3,6 +3,7 @@ from typing import Sequence
 
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.comment import Comment
 
@@ -28,6 +29,10 @@ class CommentRepository(CommentRepositoryInterface):
         return comment
 
     async def list_by_post(self, post_id: int):
-        stmt = Select(Comment).where(Comment.post_id == post_id)
+        stmt = (
+            Select(Comment)
+            .where(Comment.post_id == post_id)
+            .options(selectinload(Comment.author))
+        )
         result = await self._session.execute(stmt)
         return result.scalars().all()
