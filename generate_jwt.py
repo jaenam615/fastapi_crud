@@ -3,7 +3,7 @@ import sys
 
 import requests
 
-API_URL = "http://localhost:8000"
+API_URL = "http://localhost"
 USERNAME = "loadtest"
 PASSWORD = "loadtest"
 
