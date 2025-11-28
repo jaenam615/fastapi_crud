@@ -14,7 +14,13 @@ class CommentRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    async def list_by_post(self, post_id: int) -> Sequence[Comment]:
+    async def list_by_post(
+        self,
+        post_id: int,
+        page: int,
+        size: int,
+        offset: int,
+    ) -> Sequence[Comment]:
         pass
 
 
@@ -28,10 +34,19 @@ class CommentRepository(CommentRepositoryInterface):
         await self._session.refresh(comment)
         return comment
 
-    async def list_by_post(self, post_id: int):
+    async def list_by_post(
+        self,
+        post_id: int,
+        page: int,
+        size: int,
+        offset: int,
+    ) -> Sequence[Comment]:
         stmt = (
             Select(Comment)
             .where(Comment.post_id == post_id)
+            .order_by(Comment.created_at.desc())
+            .limit(size)
+            .offset(offset)
             .options(selectinload(Comment.author))
         )
         result = await self._session.execute(stmt)

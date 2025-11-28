@@ -12,7 +12,7 @@ class PostServiceInterface(ABC):
         pass
 
     @abstractmethod
-    async def list_posts(self) -> list[Post]:
+    async def list_posts(self, page: int, size: int) -> list[Post]:
         pass
 
     @abstractmethod
@@ -36,8 +36,9 @@ class PostService(PostServiceInterface):
         )
         return await self._repo.create(post=post)
 
-    async def list_posts(self) -> Sequence[Post]:
-        return await self._repo.list()
+    async def list_posts(self, page: int, size: int) -> Sequence[Post]:
+        offset = (page - 1) * size
+        return await self._repo.list(page=page, size=size, offset=offset)
 
     async def get_post_by_id(self, post_id: int) -> Post:
         return await self._repo.get_by_id(post_id=post_id)

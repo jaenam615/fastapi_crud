@@ -1,6 +1,6 @@
 import json
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from starlette.status import HTTP_201_CREATED
 
 from app.core.dependencies import get_current_user
@@ -23,7 +23,7 @@ async def delete_post(
     success = await post_service.delete_post(user_id=user_id, post_id=post_id)
     if not success:
         raise HTTPException(status_code=403, detail="Not authorized")
-    await redis.delete(RedisConstants.CACHE_KEY_POST_ALL)
+    await redis.delete(f"{RedisConstants.CACHE_KEY_POST_PAGE}:1::size:20")
     return PostDeleteOut(success=True, message="Post deleted")
 
 
@@ -51,22 +51,26 @@ async def create_post(
 
     user_id = current_user.id
     post = await post_service.create_post(data=data, user_id=user_id)
-    await redis.delete(RedisConstants.CACHE_KEY_POST_ALL)
+    await redis.delete(f"{RedisConstants.CACHE_KEY_POST_PAGE}:1:20")
     return post
 
 
 @router.get("/", response_model=list[PostOut])
 async def list_posts(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
     post_service: PostService = Depends(get_post_service),
 ):
-    cached = await cached_get(key=RedisConstants.CACHE_KEY_POST_ALL)
+    cached = await cached_get(
+        key=f"{RedisConstants.CACHE_KEY_POST_PAGE}:{page}:size:{size}"
+    )
     if cached:
         return json.loads(cached)
-    posts = await post_service.list_posts()
+    posts = await post_service.list_posts(page=page, size=size)
     posts_out = [PostOut.model_validate(p) for p in posts]
 
     await cached_set(
-        key=RedisConstants.CACHE_KEY_POST_ALL,
+        key=f"{RedisConstants.CACHE_KEY_POST_PAGE}:{page}:size:{size}",
         value=json.dumps([p.model_dump() for p in posts_out]),
         ttl=RedisConstants.CACHE_TTL_POSTS,
     )

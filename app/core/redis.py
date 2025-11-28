@@ -9,8 +9,10 @@ load_dotenv()
 
 
 class RedisConstants:
-    CACHE_KEY_POST_ALL = "posts:all"
-    CACHE_TTL_POSTS = 60
+    CACHE_KEY_POST_PAGE = "posts:page"
+    CACHE_TTL_POSTS = 300
+    CACHE_KEY_COMMENT_POST = "comments:post"
+    CACHE_TTL_COMMENTS = 60
 
 
 REDIS_HOST = os.getenv("REDIS_HOST")

@@ -11,7 +11,12 @@ class CommentServiceInterface(ABC):
         pass
 
     @abstractmethod
-    async def list_comments(self, post_id: int):
+    async def list_comments(
+        self,
+        post_id: int,
+        page: int,
+        size: int,
+    ):
         pass
 
 
@@ -23,5 +28,16 @@ class CommentService(CommentServiceInterface):
         comment = Comment(content=data.content, post_id=data.post_id, user_id=user_id)
         return await self._repo.create(comment=comment)
 
-    async def list_comments(self, post_id: int):
-        return await self._repo.list_by_post(post_id)
+    async def list_comments(
+        self,
+        post_id: int,
+        page: int,
+        size: int,
+    ):
+        offset = (page - 1) * size
+        return await self._repo.list_by_post(
+            post_id=post_id,
+            page=page,
+            size=size,
+            offset=offset,
+        )

@@ -14,7 +14,7 @@ class PostRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    async def list(self) -> Sequence[Post]:
+    async def list(self, page: int, size: int, offset: int) -> Sequence[Post]:
         pass
 
     @abstractmethod
@@ -36,9 +36,13 @@ class PostRepository(PostRepositoryInterface):
         await self._session.refresh(post)
         return post
 
-    async def list(self) -> Sequence[Post]:
-        stmt = select(Post).options(
-            selectinload(Post.author), selectinload(Post.comments)
+    async def list(self, page: int, size: int, offset: int) -> Sequence[Post]:
+        stmt = (
+            select(Post)
+            .order_by(Post.created_at.desc())
+            .limit(size)
+            .offset(offset)
+            .options(selectinload(Post.author), selectinload(Post.comments))
         )
         result = await self._session.execute(stmt)
         return result.scalars().all()
