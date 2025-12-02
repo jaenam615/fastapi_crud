@@ -20,6 +20,12 @@ var/
 .installed.cfg
 *.egg
 
+# Ignore ALL MySQL volume folders
+mysql/**/data/
+mysql/**/*
+!mysql/**/init.sh
+
+
 # Editor/OS specific
 .DS_Store
 .vscode/
