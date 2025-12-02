@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.db import Base, write_engine
+from app.core.middleware import DBRoutingMiddleware
 from app.core.monitoring import setup_metrics
 from app.routers import auth_router, comment_router, post_router
 
@@ -30,9 +31,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(DBRoutingMiddleware)
 
 app.include_router(auth_router.router)
 app.include_router(post_router.router)
 app.include_router(comment_router.router)
+
 
 setup_metrics(app)

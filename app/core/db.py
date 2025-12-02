@@ -1,6 +1,7 @@
 from random import choice
 from typing import AsyncGenerator
 
+from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -32,17 +33,18 @@ def get_read_engine():
     return choice(read_engines)
 
 
-AsyncSessionLocal = async_sessionmaker(
-    bind=write_engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
-
-
 class Base(DeclarativeBase):
     pass
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
+    engine = request.state.db_engine
+    AsyncSessionLocal = async_sessionmaker(
+        bind=engine,
+        expire_on_commit=False,
+        autoflush=False,
+        class_=AsyncSession,
+    )
+
     async with AsyncSessionLocal() as db:
         yield db
