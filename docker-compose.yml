@@ -1,5 +1,63 @@
 services:
   # -------------------------------
+  # MySQL Write (Master)
+  # -------------------------------
+  mysql_write:
+    image: mysql:8.0
+    container_name: mysql_write
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: fastapi
+    volumes:
+      - ./mysql/master/data:/var/lib/mysql
+    ports:
+      - "33060:3306"
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    command: >
+      --server-id=1
+      --log-bin=mysql-bin
+      --binlog-do-db=fastapi
+      --default-authentication-plugin=mysql_native_password
+
+  # -------------------------------
+  # MySQL Read Replica 1 (Slave)
+  # -------------------------------
+  mysql_read1:
+    image: mysql:8.0
+    container_name: mysql_read1
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    volumes:
+      - ./mysql/read1/data:/var/lib/mysql
+      - ./mysql/read1/init.sh:/docker-entrypoint-initdb.d/init.sh
+    command: >
+      --server-id=2
+      --relay-log=mysql-relay-bin
+      --log-bin=mysql-bin
+      --default-authentication-plugin=mysql_native_password
+
+  # -------------------------------
+  # MySQL Read Replica 2 (Slave)
+  # -------------------------------
+  mysql_read2:
+    image: mysql:8.0
+    container_name: mysql_read2
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    volumes:
+      - ./mysql/read2/data:/var/lib/mysql
+      - ./mysql/read2/init.sh:/docker-entrypoint-initdb.d/init.sh
+    command: >
+      --server-id=3
+      --relay-log=mysql-relay-bin
+      --log-bin=mysql-bin
+      --default-authentication-plugin=mysql_native_password
+
+  # -------------------------------
   # Load Balancer
   # -------------------------------
   nginx:
@@ -23,15 +81,21 @@ services:
     ports:
       - "8001:8000"
     depends_on:
-      - redis
+      mysql_write:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      MYSQL_HOST: host.docker.internal
-      MYSQL_PORT: 3306
+      MYSQL_WRITE_HOST: mysql_write
+      MYSQL_WRITE_PORT: 3306
+      MYSQL_READ_HOSTS: mysql_read1,mysql_read2
+      MYSQL_READ_PORT: 3306
       MYSQL_USER: root
       MYSQL_PASSWORD: password
       MYSQL_DB: fastapi
+      RUN_DB_INIT: "true"
 
   api2:
     build: .
@@ -39,15 +103,21 @@ services:
     ports:
       - "8002:8000"
     depends_on:
-      - redis
+      mysql_write:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      MYSQL_HOST: host.docker.internal
-      MYSQL_PORT: 3306
+      MYSQL_WRITE_HOST: mysql_write
+      MYSQL_WRITE_PORT: 3306
+      MYSQL_READ_HOSTS: mysql_read1,mysql_read2
+      MYSQL_READ_PORT: 3306
       MYSQL_USER: root
       MYSQL_PASSWORD: password
       MYSQL_DB: fastapi
+      RUN_DB_INIT: "false"
 
   api3:
     build: .
@@ -55,15 +125,21 @@ services:
     ports:
       - "8003:8000"
     depends_on:
-      - redis
+      mysql_write:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      MYSQL_HOST: host.docker.internal
-      MYSQL_PORT: 3306
+      MYSQL_WRITE_HOST: mysql_write
+      MYSQL_WRITE_PORT: 3306
+      MYSQL_READ_HOSTS: mysql_read1,mysql_read2
+      MYSQL_READ_PORT: 3306
       MYSQL_USER: root
       MYSQL_PASSWORD: password
       MYSQL_DB: fastapi
+      RUN_DB_INIT: "false"
 
   # -------------------------------
   # Redis (Caching)
